@@ -10,7 +10,10 @@
 		page = doc.addPage(selectedSize);
 
 		const pdfDataUri = await doc.saveAsBase64({ dataUri: true });
-		src = pdfDataUri + '#view=fit';
+		const res = await fetch(pdfDataUri);
+		const blob = await res.blob();
+		const url = URL.createObjectURL(blob);
+		src = url + '#view=fit';
 	}
 
 	onMount(createPdf);
@@ -42,22 +45,29 @@
 			if (type === 'application/pdf') console.log('Is PDF');
 			else console.log('Is image');
 
-			const fileBuffer = await readFile(rawFile);
-			const embedImage = await doc.embedJpg(fileBuffer);
-			const imgWidthScale = selectedSize[0] / embedImage.width;
-			const imgHeightScale = selectedSize[1] / embedImage.height;
-			const imgScale = Math.max(imgWidthScale, imgHeightScale);
-			const imgSize = embedImage.scale(imgScale);
+			try {
+				const fileBuffer = await readFile(rawFile);
+				const embedImage = await doc.embedJpg(fileBuffer);
+				const imgWidthScale = selectedSize[0] / embedImage.width;
+				const imgHeightScale = selectedSize[1] / embedImage.height;
+				const imgScale = Math.max(imgWidthScale, imgHeightScale);
+				const imgSize = embedImage.scale(imgScale);
 
-			page.drawImage(embedImage, {
-				x: page.getWidth() / 2 - imgSize.width / 2,
-				y: page.getHeight() / 2 - imgSize.height / 2,
-				width: imgSize.width,
-				height: imgSize.height
-			});
+				page.drawImage(embedImage, {
+					x: page.getWidth() / 2 - imgSize.width / 2,
+					y: page.getHeight() / 2 - imgSize.height / 2,
+					width: imgSize.width,
+					height: imgSize.height
+				});
 
-			const pdfDataUri = await doc.saveAsBase64({ dataUri: true });
-			src = pdfDataUri + '#view=fit';
+				const pdfDataUri = await doc.saveAsBase64({ dataUri: true });
+				const res = await fetch(pdfDataUri);
+				const blob = await res.blob();
+				const url = URL.createObjectURL(blob);
+				src = url + '#view=fit';
+			} catch (error) {
+				console.log(error);
+			}
 		};
 	}
 
