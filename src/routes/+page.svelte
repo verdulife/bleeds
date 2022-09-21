@@ -101,14 +101,17 @@
 						const page = await doc.embedPage(pdfPages[p]);
 						const newPage = doc.addPage(selectedSize);
 						const isHorizontal = page.width > page.height;
-						const printWidth = isHorizontal ? page.height : page.width;
-						const printHeight = isHorizontal ? page.width : page.height;
+						const rotateImage = autoRotate && isHorizontal;
+						const printWidth = rotateImage ? page.height : page.width;
+						const printHeight = rotateImage ? page.width : page.height;
 						const imgWidthScale = selectedSize[0] / printWidth;
 						const imgHeightScale = selectedSize[1] / printHeight;
-						const imgScale = Math.max(imgWidthScale, imgHeightScale);
+						const imgScale = fit
+							? Math.max(imgWidthScale, imgHeightScale)
+							: Math.min(imgWidthScale, imgHeightScale);
 						const imgSize = page.scale(imgScale);
 
-						if (isHorizontal) {
+						if (rotateImage) {
 							newPage.setSize(selectedSize[1], selectedSize[0]);
 							newPage.setRotation(degrees(90));
 						}
