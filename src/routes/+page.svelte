@@ -4,7 +4,7 @@
 
 	let src, doc, docPages;
 	let selectedSize = PageSizes.A6;
-	let statusmessage = 'Nothing to process';
+	let statusmessage = 'Start adding images or pdfs';
 	let autoRotate = true;
 	let fit = true;
 
@@ -14,18 +14,20 @@
 
 	async function createPdf() {
 		doc = await PDFDocument.create();
+		src = undefined;
+		updateStatus('Start adding images or pdfs');
 	}
 
 	onMount(createPdf);
 
-	async function processPdf(doc) {
+	async function processPdf() {
 		const pdfDataUri = await doc.saveAsBase64({ dataUri: true });
 		const res = await fetch(pdfDataUri);
 		const blob = await res.blob();
 		const url = URL.createObjectURL(blob);
 		src = url + '#view=fit';
-
 		docPages = doc.pageCount;
+		updateStatus(`${docPages} Pages loaded`);
 	}
 
 	function readFile(file) {
@@ -65,7 +67,7 @@
 				let pdfPages;
 
 				if (type === 'pdf') {
-					const loadedPdf = await PDFDocument.load(fileBuffer);
+					const loadedPdf = await PDFDocument.load(fileBuffer, { ignoreEncryption: true });
 					pdfPages = loadedPdf.getPages();
 				} else if (type === 'jpeg') embedImage = await doc.embedJpg(fileBuffer);
 				else if (type === 'png') embedImage = await doc.embedPng(fileBuffer);
@@ -129,8 +131,7 @@
 				pdfPages = undefined;
 			}
 
-			processPdf(doc);
-			updateStatus('Nothing to process');
+			await processPdf();
 		};
 	}
 
@@ -156,14 +157,7 @@
 		</div>
 
 		<button class="sec xfill" on:click={loadFile}>ADD</button>
-
-		<ul class="col xfill">
-			{#if docPages}
-				<p>{docPages} Pages loaded</p>
-			{:else}
-				<p>No pages loaded</p>
-			{/if}
-		</ul>
+		<button class="sec-outline xfill" on:click={createPdf}>RESET</button>
 	</aside>
 
 	<article class="col grow yfill">
@@ -179,6 +173,7 @@
 	aside {
 		width: 300px;
 		gap: 20px;
+		accent-color: var(--color-sec);
 		padding: 20px;
 	}
 
