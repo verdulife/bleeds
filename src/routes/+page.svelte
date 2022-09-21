@@ -48,37 +48,75 @@
 		input.onchange = async () => {
 			const rawFiles = Array.from(input.files);
 
-			for (let i = 0; i < rawFiles.length; i++) {
-				updateStatus(`Processing image ${i + 1} of ${rawFiles.length}`);
+			for (let r = 0; r < rawFiles.length; r++) {
+				updateStatus(`Processing image ${r + 1} of ${rawFiles.length}`);
 
-				const rawFile = rawFiles[i];
-				const newPage = doc.addPage(selectedSize);
-				const { type } = rawFile;
-
-				if (type === 'application/pdf') console.log('Is PDF');
-				else console.log('Is image');
-
+				const rawFile = rawFiles[r];
+				const type = rawFile.type.split('/')[1];
 				const fileBuffer = await readFile(rawFile);
-				const embedImage = await doc.embedJpg(fileBuffer);
-				const isHorizontal = embedImage.width > embedImage.height;
-				const printWidth = isHorizontal ? embedImage.height : embedImage.width;
-				const printHeight = isHorizontal ? embedImage.width : embedImage.height;
-				const imgWidthScale = selectedSize[0] / printWidth;
-				const imgHeightScale = selectedSize[1] / printHeight;
-				const imgScale = Math.max(imgWidthScale, imgHeightScale);
-				const imgSize = embedImage.scale(imgScale);
 
-				if (isHorizontal) {
-					newPage.setSize(selectedSize[1], selectedSize[0]);
-					newPage.setRotation(degrees(90));
+				console.log(`Is ${type}`);
+
+				let embedImage;
+				let pdfPages;
+
+				if (type === 'pdf') {
+					const loadedPdf = await PDFDocument.load(fileBuffer);
+					pdfPages = loadedPdf.getPages();
+				} else if (type === 'jpeg') embedImage = await doc.embedJpg(fileBuffer);
+				else if (type === 'png') embedImage = await doc.embedPng(fileBuffer);
+
+				if (embedImage) {
+					const newPage = doc.addPage(selectedSize);
+					const isHorizontal = embedImage.width > embedImage.height;
+					const printWidth = isHorizontal ? embedImage.height : embedImage.width;
+					const printHeight = isHorizontal ? embedImage.width : embedImage.height;
+					const imgWidthScale = selectedSize[0] / printWidth;
+					const imgHeightScale = selectedSize[1] / printHeight;
+					const imgScale = Math.max(imgWidthScale, imgHeightScale);
+					const imgSize = embedImage.scale(imgScale);
+
+					if (isHorizontal) {
+						newPage.setSize(selectedSize[1], selectedSize[0]);
+						newPage.setRotation(degrees(90));
+					}
+
+					newPage.drawImage(embedImage, {
+						x: newPage.getWidth() / 2 - imgSize.width / 2,
+						y: newPage.getHeight() / 2 - imgSize.height / 2,
+						width: imgSize.width,
+						height: imgSize.height
+					});
 				}
 
-				newPage.drawImage(embedImage, {
-					x: newPage.getWidth() / 2 - imgSize.width / 2,
-					y: newPage.getHeight() / 2 - imgSize.height / 2,
-					width: imgSize.width,
-					height: imgSize.height
-				});
+				if (pdfPages) {
+					for (let p = 0; p < pdfPages.length; p++) {
+						const page = await doc.embedPage(pdfPages[p]);
+						const newPage = doc.addPage(selectedSize);
+						const isHorizontal = page.width > page.height;
+						const printWidth = isHorizontal ? page.height : page.width;
+						const printHeight = isHorizontal ? page.width : page.height;
+						const imgWidthScale = selectedSize[0] / printWidth;
+						const imgHeightScale = selectedSize[1] / printHeight;
+						const imgScale = Math.max(imgWidthScale, imgHeightScale);
+						const imgSize = page.scale(imgScale);
+
+						if (isHorizontal) {
+							newPage.setSize(selectedSize[1], selectedSize[0]);
+							newPage.setRotation(degrees(90));
+						}
+
+						newPage.drawPage(page, {
+							x: newPage.getWidth() / 2 - imgSize.width / 2,
+							y: newPage.getHeight() / 2 - imgSize.height / 2,
+							width: imgSize.width,
+							height: imgSize.height
+						});
+					}
+				}
+
+				embedImage = undefined;
+				pdfPages = undefined;
 			}
 
 			processPdf(doc);
