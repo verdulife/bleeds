@@ -2,9 +2,11 @@
 	import { PDFDocument, PageSizes, degrees } from 'pdf-lib';
 	import { onMount } from 'svelte';
 
-	let src, doc;
+	let src, doc, docPages;
 	let selectedSize = PageSizes.A6;
 	let statusmessage = 'Nothing to process';
+	let autoRotate = true;
+	let fit = true;
 
 	function updateStatus(message) {
 		statusmessage = message;
@@ -22,6 +24,8 @@
 		const blob = await res.blob();
 		const url = URL.createObjectURL(blob);
 		src = url + '#view=fit';
+
+		docPages = doc.pageCount;
 	}
 
 	function readFile(file) {
@@ -69,14 +73,17 @@
 				if (embedImage) {
 					const newPage = doc.addPage(selectedSize);
 					const isHorizontal = embedImage.width > embedImage.height;
-					const printWidth = isHorizontal ? embedImage.height : embedImage.width;
-					const printHeight = isHorizontal ? embedImage.width : embedImage.height;
+					const rotateImage = autoRotate && isHorizontal;
+					const printWidth = rotateImage ? embedImage.height : embedImage.width;
+					const printHeight = rotateImage ? embedImage.width : embedImage.height;
 					const imgWidthScale = selectedSize[0] / printWidth;
 					const imgHeightScale = selectedSize[1] / printHeight;
-					const imgScale = Math.max(imgWidthScale, imgHeightScale);
+					const imgScale = fit
+						? Math.max(imgWidthScale, imgHeightScale)
+						: Math.min(imgWidthScale, imgHeightScale);
 					const imgSize = embedImage.scale(imgScale);
 
-					if (isHorizontal) {
+					if (rotateImage) {
 						newPage.setSize(selectedSize[1], selectedSize[0]);
 						newPage.setRotation(degrees(90));
 					}
@@ -128,14 +135,32 @@
 </script>
 
 <section class="viewport row nowrap">
-	<aside class="yfill">
-		<button class="sec xfill" on:click={loadFile}>ADD</button>
-
+	<aside class="col yfill">
 		<select class="outline xfill" bind:value={selectedSize}>
 			{#each Object.entries(PageSizes) as [key, value]}
 				<option {value}>{key}</option>
 			{/each}
 		</select>
+
+		<div class="row jbetween acenter xfill">
+			<label for="autorotate">Autorotate</label>
+			<input type="checkbox" id="autorotate" bind:checked={autoRotate} />
+		</div>
+
+		<div class="row jbetween acenter xfill">
+			<label for="fit">Fit</label>
+			<input type="checkbox" id="fit" bind:checked={fit} />
+		</div>
+
+		<button class="sec xfill" on:click={loadFile}>ADD</button>
+
+		<ul class="col xfill">
+			{#if docPages}
+				<p>{docPages} Pages loaded</p>
+			{:else}
+				<p>No pages loaded</p>
+			{/if}
+		</ul>
 	</aside>
 
 	<article class="col grow yfill">
@@ -150,6 +175,7 @@
 <style lang="scss">
 	aside {
 		width: 300px;
+		gap: 20px;
 		padding: 20px;
 	}
 
