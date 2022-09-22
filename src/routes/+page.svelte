@@ -2,6 +2,27 @@
 	import { PDFDocument, PageSizes, degrees } from 'pdf-lib';
 	import { onMount } from 'svelte';
 
+	let syncWorker = undefined;
+
+	function onWorkerMessage({ data, msg }) {
+		console.log(msg, data);
+	}
+
+	async function loadWorker() {
+		const SyncWorker = await import('$lib/processPage.worker?worker');
+		syncWorker = new SyncWorker.default();
+
+		// recive message to worker
+		syncWorker.onmessage = onWorkerMessage;
+
+		// send message to worker
+		const message = {
+			msg: 'request1',
+			data: { text: 'Hello World v2 🤪' }
+		};
+		syncWorker.postMessage(message);
+	}
+
 	let src, doc, docPages;
 	let selectedSize = PageSizes.A6;
 	let statusmessage = 'Start adding images or pdfs';
@@ -18,7 +39,10 @@
 		updateStatus('Start adding images or pdfs');
 	}
 
-	onMount(createPdf);
+	onMount(() => {
+		createPdf();
+		loadWorker();
+	});
 
 	async function processPdf() {
 		const pdfDataUri = await doc.saveAsBase64({ dataUri: true });
