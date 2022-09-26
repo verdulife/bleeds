@@ -1,48 +1,22 @@
 <script>
 	import { PDFDocument, PageSizes, degrees } from 'pdf-lib';
+	import { queueStatus } from '$lib/stores';
+	import { readFile } from '$lib/utils';
 	import { onMount } from 'svelte';
 
-	let syncWorker = undefined;
-
-	function onWorkerMessage({ data, msg }) {
-		console.log(msg, data);
-	}
-
-	async function loadWorker() {
-		const SyncWorker = await import('$lib/processPage.worker?worker');
-		syncWorker = new SyncWorker.default();
-
-		// recive message to worker
-		syncWorker.onmessage = onWorkerMessage;
-
-		// send message to worker
-		const message = {
-			msg: 'request1',
-			data: { text: 'Hello World v2 🤪' }
-		};
-		syncWorker.postMessage(message);
-	}
+	import Status from '$lib/components/Status.svelte';
 
 	let src, doc, docPages;
 	let selectedSize = PageSizes.A6;
-	let statusmessage = 'Start adding images or pdfs';
 	let autoRotate = true;
 	let fit = true;
-
-	function updateStatus(message) {
-		statusmessage = message;
-	}
 
 	async function createPdf() {
 		doc = await PDFDocument.create();
 		src = undefined;
-		updateStatus('Start adding images or pdfs');
 	}
 
-	onMount(() => {
-		createPdf();
-		loadWorker();
-	});
+	onMount(createPdf);
 
 	async function processPdf() {
 		const pdfDataUri = await doc.saveAsBase64({ dataUri: true });
@@ -51,21 +25,9 @@
 		const url = URL.createObjectURL(blob);
 		src = url + '#view=fit';
 		docPages = doc.pageCount;
-		updateStatus(`${docPages} Pages loaded`);
-	}
 
-	function readFile(file) {
-		return new Promise((resolve, reject) => {
-			const reader = new FileReader();
-
-			reader.onload = () => {
-				resolve(reader.result);
-			};
-
-			reader.onerror = reject;
-
-			reader.readAsArrayBuffer(file);
-		});
+		$queueStatus.active = false;
+		$queueStatus.message = `${docPages} Pages loaded`;
 	}
 
 	function loadFile() {
@@ -79,13 +41,11 @@
 			const rawFiles = Array.from(input.files);
 
 			for (let r = 0; r < rawFiles.length; r++) {
-				updateStatus(`Processing image ${r + 1} of ${rawFiles.length}`);
+				$queueStatus.message = `Processing file ${r + 1} of ${rawFiles.length}`;
 
 				const rawFile = rawFiles[r];
 				const type = rawFile.type.split('/')[1];
 				const fileBuffer = await readFile(rawFile);
-
-				console.log(`Is ${type}`);
 
 				let embedImage;
 				let pdfPages;
@@ -124,6 +84,10 @@
 
 				if (pdfPages) {
 					for (let p = 0; p < pdfPages.length; p++) {
+						$queueStatus.message = `Processing page ${p} of ${pdfPages.length} from file ${
+							r + 1
+						} of ${rawFiles.length}`;
+
 						const page = await doc.embedPage(pdfPages[p]);
 						const newPage = doc.addPage(selectedSize);
 						const isHorizontal = page.width > page.height;
@@ -185,7 +149,7 @@
 	</aside>
 
 	<article class="col grow yfill">
-		<div class="status xfill tcenter">{statusmessage}</div>
+		<Status />
 
 		{#if src}
 			<iframe class="fill" {src} title="=PDF preview" />
@@ -207,11 +171,5 @@
 
 	article {
 		background: #000;
-	}
-
-	.status {
-		background: var(--color-sec);
-		color: #fff;
-		padding: 5px;
 	}
 </style>
