@@ -1,8 +1,8 @@
 <script>
-	import { queueStatus } from '$lib/stores';
+	import { queue } from '$lib/stores';
 </script>
 
-<aside class="xfill tcenter">{$queueStatus.message}</aside>
+<aside class="xfill tcenter">{$queue.message}</aside>
 
 <style lang="scss">
 	aside {
