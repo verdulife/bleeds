@@ -1,6 +1,6 @@
 <script>
 	import { options, queue } from '$lib/stores';
-	import { PDFDocument, PageSizes } from 'pdf-lib';
+	import { PDFDocument, PageSizes, degrees } from 'pdf-lib';
 	import { readFile } from '$lib/utils';
 	import { onMount } from 'svelte';
 
