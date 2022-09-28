@@ -5,6 +5,7 @@
 	import { onMount } from 'svelte';
 
 	let doc, docPages;
+	let { docSize } = $options;
 	async function createPdf() {
 		doc = await PDFDocument.create();
 		$queue.src = undefined;
@@ -22,9 +23,27 @@
 
 		$queue.active = false;
 		$queue.message = `${docPages} Pages loaded`;
+
+		console.log('processed');
 	}
 
-	$: if ($options.docSize) createPdf();
+	function resizeDoc() {
+		doc.pageMap.forEach((page) => {
+			const { angle } = page.getRotation();
+			const hasRotation = angle !== 0;
+
+			const scaleX = $options.docSize[0] / page.getWidth();
+			const scaleY = $options.docSize[1] / page.getHeight();
+
+			if (hasRotation) page.scale(scaleY, scaleX);
+			else page.scale(scaleX, scaleY);
+		});
+
+		processPdf();
+		docSize = $options.docSize;
+	}
+
+	$: if (docPages && $options.docSize !== docSize) resizeDoc();
 
 	function loadFile() {
 		const input = document.createElement('input');
