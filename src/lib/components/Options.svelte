@@ -1,7 +1,7 @@
 <script>
 	import { options, queue } from '$lib/stores';
 	import { PDFDocument, PageSizes, degrees } from 'pdf-lib';
-	import { readFile, mm } from '$lib/utils';
+	import { readFile, mm, addBleeds } from '$lib/utils';
 	import { onMount } from 'svelte';
 
 	let doc, docPages;
@@ -72,6 +72,7 @@
 				else if (type === 'png') embedImage = await doc.embedPng(fileBuffer);
 
 				if (embedImage) {
+					const bleedSize = $options.bleeds ? [docSize[0] + mm(12), docSize[1] + mm(12)] : docSize;
 					const newPage = doc.addPage($options.docSize);
 					const isHorizontal = embedImage.width > embedImage.height;
 					const rotateImage = $options.autoRotate && isHorizontal;
@@ -89,25 +90,23 @@
 						newPage.setRotation(degrees(90));
 					}
 
-					newPage.setMediaBox(0, 0, docSize[0] + mm(12), docSize[1] + mm(12));
-					newPage.setTrimBox(0, 0, docSize[0] + mm(12), docSize[1] + mm(12));
-					newPage.setBleedBox(mm(3), mm(3), docSize[0] + mm(6), docSize[1] + mm(6));
-					newPage.setArtBox(mm(6), mm(6), docSize[0], docSize[1]);
+					if ($options.bleeds) {
+						newPage.setMediaBox(0, 0, docSize[0] + mm(12), docSize[1] + mm(12));
+						newPage.setBleedBox(mm(3), mm(3), docSize[0] + mm(6), docSize[1] + mm(6));
+						newPage.setTrimBox(mm(6), mm(6), docSize[0], docSize[1]);
+					}
 
-					console.log(
-						newPage.getMediaBox(),
-						newPage.getCropBox(),
-						newPage.getBleedBox(),
-						newPage.getTrimBox(),
-						newPage.getArtBox()
-					);
+					const docWidth = newPage.getMediaBox().width;
+					const docHeight = newPage.getMediaBox().height;
 
 					newPage.drawImage(embedImage, {
-						x: newPage.getWidth() / 2 - imgSize.width / 2,
-						y: newPage.getHeight() / 2 - imgSize.height / 2,
+						x: docWidth / 2 - imgSize.width / 2,
+						y: docHeight / 2 - imgSize.height / 2,
 						width: imgSize.width,
 						height: imgSize.height
 					});
+
+					if ($options.bleeds) addBleeds(newPage);
 				}
 
 				if (pdfPages) {
@@ -167,6 +166,11 @@
 	<div class="row jbetween acenter xfill">
 		<label for="fit">Fit</label>
 		<input type="checkbox" id="fit" bind:checked={$options.fit} />
+	</div>
+
+	<div class="row jbetween acenter xfill">
+		<label for="bleeds">Bleeds</label>
+		<input type="checkbox" id="bleeds" bind:checked={$options.bleeds} />
 	</div>
 
 	<button class="sec xfill" on:click={loadFile}>ADD</button>

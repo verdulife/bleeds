@@ -4,7 +4,8 @@ import { PageSizes } from 'pdf-lib';
 export const options = writable({
 	docSize: PageSizes.A6,
 	autoRotate: true,
-	fit: true
+	fit: true,
+	bleeds: true
 });
 
 export const queue = writable({
