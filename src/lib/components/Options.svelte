@@ -1,7 +1,7 @@
 <script>
 	import { options, queue } from '$lib/stores';
 	import { PDFDocument, PageSizes, degrees } from 'pdf-lib';
-	import { readFile } from '$lib/utils';
+	import { readFile, mm } from '$lib/utils';
 	import { onMount } from 'svelte';
 
 	let doc, docPages;
@@ -88,6 +88,19 @@
 						newPage.setSize($options.docSize[1], $options.docSize[0]);
 						newPage.setRotation(degrees(90));
 					}
+
+					newPage.setMediaBox(0, 0, docSize[0] + mm(12), docSize[1] + mm(12));
+					newPage.setTrimBox(0, 0, docSize[0] + mm(12), docSize[1] + mm(12));
+					newPage.setBleedBox(mm(3), mm(3), docSize[0] + mm(6), docSize[1] + mm(6));
+					newPage.setArtBox(mm(6), mm(6), docSize[0], docSize[1]);
+
+					console.log(
+						newPage.getMediaBox(),
+						newPage.getCropBox(),
+						newPage.getBleedBox(),
+						newPage.getTrimBox(),
+						newPage.getArtBox()
+					);
 
 					newPage.drawImage(embedImage, {
 						x: newPage.getWidth() / 2 - imgSize.width / 2,

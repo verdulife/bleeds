@@ -11,3 +11,7 @@ export function readFile(file) {
 		reader.readAsArrayBuffer(file);
 	});
 }
+
+export function mm(n) {
+	return n * 2.833;
+}
