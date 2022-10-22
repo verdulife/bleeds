@@ -5,7 +5,8 @@ export const options = writable({
 	docSize: PageSizes.A6,
 	autoRotate: true,
 	fit: true,
-	bleeds: true
+	bleeds: false,
+	mirrorBleed: false
 });
 
 export const queue = writable({

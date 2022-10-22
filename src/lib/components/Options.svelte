@@ -1,11 +1,23 @@
 <script>
 	import { options, queue } from '$lib/stores';
-	import { PDFDocument, PageSizes, degrees } from 'pdf-lib';
-	import { readFile, mm, addBleeds } from '$lib/utils';
+	import {
+		PDFDocument,
+		PageSizes,
+		degrees,
+		moveTo,
+		lineTo,
+		clipEvenOdd,
+		closePath,
+		endPath,
+		popGraphicsState,
+		pushGraphicsState
+	} from 'pdf-lib';
+	import { readFile, mm, addCropMarks, addBleeds } from '$lib/utils';
 	import { onMount } from 'svelte';
 
 	let doc, docPages;
 	let { docSize } = $options;
+
 	async function createPdf() {
 		doc = await PDFDocument.create();
 		$queue.src = undefined;
@@ -45,6 +57,123 @@
 
 	$: if (docPages && $options.docSize !== docSize) resizeDoc();
 
+	async function processFiles(rawFiles) {
+		for (let r = 0; r < rawFiles.length; r++) {
+			$queue.message = `Processing file ${r + 1} of ${rawFiles.length}`;
+
+			const rawFile = rawFiles[r];
+			const type = rawFile.type.split('/')[1];
+			const fileBuffer = await readFile(rawFile);
+
+			let embedImage;
+			let pdfPages;
+
+			if (type === 'pdf') {
+				const loadedPdf = await PDFDocument.load(fileBuffer, { ignoreEncryption: true });
+				pdfPages = loadedPdf.getPages();
+			} else if (type === 'jpeg') embedImage = await doc.embedJpg(fileBuffer);
+			else if (type === 'png') embedImage = await doc.embedPng(fileBuffer);
+
+			if (embedImage) {
+				const newPage = doc.addPage(docSize);
+				const isHorizontal = embedImage.width > embedImage.height;
+				const rotateImage = $options.autoRotate && isHorizontal;
+				const mediaSize = mm(12);
+				const bleedSize = mm(6);
+
+				if ($options.bleeds) {
+					newPage.setMediaBox(0, 0, docSize[0] + mediaSize, docSize[1] + mediaSize);
+					newPage.setBleedBox(mm(3), mm(3), docSize[0] + bleedSize, docSize[1] + bleedSize);
+					newPage.setTrimBox(mm(6), mm(6), docSize[0], docSize[1]);
+				}
+
+				const printWidth = rotateImage ? embedImage.height : embedImage.width;
+				const printHeight = rotateImage ? embedImage.width : embedImage.height;
+				const imgWidthScale = newPage.getTrimBox().width / printWidth;
+				const imgHeightScale = newPage.getTrimBox().height / printHeight;
+				const imgScale = $options.fit
+					? Math.max(imgWidthScale, imgHeightScale)
+					: Math.min(imgWidthScale, imgHeightScale);
+				const imgSize = embedImage.scale(imgScale);
+
+				if (rotateImage) {
+					if ($options.bleeds) {
+						newPage.setMediaBox(0, 0, docSize[1] + mediaSize, docSize[0] + mediaSize);
+						newPage.setBleedBox(mm(3), mm(3), docSize[1] + bleedSize, docSize[0] + bleedSize);
+						newPage.setTrimBox(mm(6), mm(6), docSize[1], docSize[0]);
+					} else newPage.setSize(docSize[1], docSize[0]);
+
+					newPage.setRotation(degrees(90));
+				}
+
+				const cropDistance = $options.bleeds ? mm(3) : 0;
+				newPage.pushOperators(
+					pushGraphicsState(),
+					moveTo(cropDistance, cropDistance),
+					lineTo(newPage.getMediaBox().width - cropDistance, cropDistance),
+					lineTo(
+						newPage.getMediaBox().width - cropDistance,
+						newPage.getMediaBox().height - cropDistance
+					),
+					lineTo(cropDistance, newPage.getMediaBox().height - cropDistance),
+					closePath(),
+					clipEvenOdd(),
+					endPath()
+				);
+
+				addBleeds({
+					page: newPage,
+					art: embedImage,
+					imgSize,
+					bleeds: $options.bleeds,
+					mirror: $options.mirrorBleed
+				});
+
+				newPage.pushOperators(popGraphicsState());
+
+				if ($options.bleeds) addCropMarks(newPage);
+			}
+
+			if (pdfPages) {
+				for (let p = 0; p < pdfPages.length; p++) {
+					$queue.message = `Processing page ${p} of ${pdfPages.length} from file ${r + 1} of ${
+						rawFiles.length
+					}`;
+
+					const page = await doc.embedPage(pdfPages[p]);
+					const newPage = doc.addPage($options.docSize);
+					const isHorizontal = page.width > page.height;
+					const rotateImage = $options.autoRotate && isHorizontal;
+					const printWidth = rotateImage ? page.height : page.width;
+					const printHeight = rotateImage ? page.width : page.height;
+					const imgWidthScale = $options.docSize[0] / printWidth;
+					const imgHeightScale = $options.docSize[1] / printHeight;
+					const imgScale = $options.fit
+						? Math.max(imgWidthScale, imgHeightScale)
+						: Math.min(imgWidthScale, imgHeightScale);
+					const imgSize = page.scale(imgScale);
+
+					if (rotateImage) {
+						newPage.setSize($options.docSize[1], $options.docSize[0]);
+						newPage.setRotation(degrees(90));
+					}
+
+					newPage.drawPage(page, {
+						x: newPage.getWidth() / 2 - imgSize.width / 2,
+						y: newPage.getHeight() / 2 - imgSize.height / 2,
+						width: imgSize.width,
+						height: imgSize.height
+					});
+				}
+			}
+
+			embedImage = undefined;
+			pdfPages = undefined;
+		}
+
+		await processPdf();
+	}
+
 	function loadFile() {
 		const input = document.createElement('input');
 		input.type = 'file';
@@ -54,99 +183,7 @@
 
 		input.onchange = async () => {
 			const rawFiles = Array.from(input.files);
-
-			for (let r = 0; r < rawFiles.length; r++) {
-				$queue.message = `Processing file ${r + 1} of ${rawFiles.length}`;
-
-				const rawFile = rawFiles[r];
-				const type = rawFile.type.split('/')[1];
-				const fileBuffer = await readFile(rawFile);
-
-				let embedImage;
-				let pdfPages;
-
-				if (type === 'pdf') {
-					const loadedPdf = await PDFDocument.load(fileBuffer, { ignoreEncryption: true });
-					pdfPages = loadedPdf.getPages();
-				} else if (type === 'jpeg') embedImage = await doc.embedJpg(fileBuffer);
-				else if (type === 'png') embedImage = await doc.embedPng(fileBuffer);
-
-				if (embedImage) {
-					const bleedSize = $options.bleeds ? [docSize[0] + mm(12), docSize[1] + mm(12)] : docSize;
-					const newPage = doc.addPage($options.docSize);
-					const isHorizontal = embedImage.width > embedImage.height;
-					const rotateImage = $options.autoRotate && isHorizontal;
-					const printWidth = rotateImage ? embedImage.height : embedImage.width;
-					const printHeight = rotateImage ? embedImage.width : embedImage.height;
-					const imgWidthScale = $options.docSize[0] / printWidth;
-					const imgHeightScale = $options.docSize[1] / printHeight;
-					const imgScale = $options.fit
-						? Math.max(imgWidthScale, imgHeightScale)
-						: Math.min(imgWidthScale, imgHeightScale);
-					const imgSize = embedImage.scale(imgScale);
-
-					if (rotateImage) {
-						newPage.setSize($options.docSize[1], $options.docSize[0]);
-						newPage.setRotation(degrees(90));
-					}
-
-					if ($options.bleeds) {
-						newPage.setMediaBox(0, 0, docSize[0] + mm(12), docSize[1] + mm(12));
-						newPage.setBleedBox(mm(3), mm(3), docSize[0] + mm(6), docSize[1] + mm(6));
-						newPage.setTrimBox(mm(6), mm(6), docSize[0], docSize[1]);
-					}
-
-					const docWidth = newPage.getMediaBox().width;
-					const docHeight = newPage.getMediaBox().height;
-
-					newPage.drawImage(embedImage, {
-						x: docWidth / 2 - imgSize.width / 2,
-						y: docHeight / 2 - imgSize.height / 2,
-						width: imgSize.width,
-						height: imgSize.height
-					});
-
-					if ($options.bleeds) addBleeds(newPage);
-				}
-
-				if (pdfPages) {
-					for (let p = 0; p < pdfPages.length; p++) {
-						$queue.message = `Processing page ${p} of ${pdfPages.length} from file ${r + 1} of ${
-							rawFiles.length
-						}`;
-
-						const page = await doc.embedPage(pdfPages[p]);
-						const newPage = doc.addPage($options.docSize);
-						const isHorizontal = page.width > page.height;
-						const rotateImage = $options.autoRotate && isHorizontal;
-						const printWidth = rotateImage ? page.height : page.width;
-						const printHeight = rotateImage ? page.width : page.height;
-						const imgWidthScale = $options.docSize[0] / printWidth;
-						const imgHeightScale = $options.docSize[1] / printHeight;
-						const imgScale = $options.fit
-							? Math.max(imgWidthScale, imgHeightScale)
-							: Math.min(imgWidthScale, imgHeightScale);
-						const imgSize = page.scale(imgScale);
-
-						if (rotateImage) {
-							newPage.setSize($options.docSize[1], $options.docSize[0]);
-							newPage.setRotation(degrees(90));
-						}
-
-						newPage.drawPage(page, {
-							x: newPage.getWidth() / 2 - imgSize.width / 2,
-							y: newPage.getHeight() / 2 - imgSize.height / 2,
-							width: imgSize.width,
-							height: imgSize.height
-						});
-					}
-				}
-
-				embedImage = undefined;
-				pdfPages = undefined;
-			}
-
-			await processPdf();
+			await processFiles(rawFiles);
 		};
 	}
 </script>
@@ -172,6 +209,13 @@
 		<label for="bleeds">Bleeds</label>
 		<input type="checkbox" id="bleeds" bind:checked={$options.bleeds} />
 	</div>
+
+	{#if $options.bleeds}
+		<div class="row jbetween acenter xfill">
+			<label for="mirror">Mirror Bleed</label>
+			<input type="checkbox" id="mirror" bind:checked={$options.mirrorBleed} />
+		</div>
+	{/if}
 
 	<button class="sec xfill" on:click={loadFile}>ADD</button>
 	<button class="sec-outline xfill" on:click={createPdf}>RESET</button>
