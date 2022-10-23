@@ -5,7 +5,7 @@ export const options = writable({
 	docSize: PageSizes.A6,
 	autoRotate: true,
 	fit: true,
-	bleeds: false,
+	bleed: false,
 	mirrorBleed: false
 });
 
