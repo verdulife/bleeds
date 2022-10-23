@@ -1,10 +1,10 @@
 <script>
 	import { options, queue } from '$lib/stores';
 	import { PDFDocument, PageSizes } from 'pdf-lib';
-	import { readFile, processEmbedPdf, processEmbedImage } from '$lib/utils';
+	import { readFile, processEmbedPdf, processEmbedImage, toMm } from '$lib/utils';
 	import { onMount } from 'svelte';
 
-	let doc, docPages;
+	let doc, docPages, art;
 	let { docSize } = $options;
 
 	async function newPdf() {
@@ -29,17 +29,19 @@
 	function resizeDoc() {
 		doc.pageMap.forEach((page) => {
 			const { angle } = page.getRotation();
-			const hasRotation = angle !== 0;
+			const rotate = angle !== 0;
 
-			const scaleX = $options.docSize[0] / page.getWidth();
-			const scaleY = $options.docSize[1] / page.getHeight();
+			const width = $options.docSize[rotate ? 1 : 0] / page.getTrimBox().width;
+			const height = $options.docSize[rotate ? 0 : 1] / page.getTrimBox().height;
 
-			if (hasRotation) page.scale(scaleY, scaleX);
-			else page.scale(scaleX, scaleY);
+			page.scale(width, height);
 		});
 
-		processPdf();
 		docSize = $options.docSize;
+
+		if (doc.pageCount > 0) {
+			processPdf();
+		}
 	}
 
 	async function processFiles(rawFiles) {
@@ -50,7 +52,6 @@
 			const type = rawFile.type.split('/')[1];
 			const fileBuffer = await readFile(rawFile);
 
-			let art;
 			if (type === 'pdf') {
 				const loadedPdf = await PDFDocument.load(fileBuffer, { ignoreEncryption: true });
 				art = loadedPdf.getPages();
@@ -94,7 +95,18 @@
 		{#each Object.entries(PageSizes) as [key, value]}
 			<option {value}>{key}</option>
 		{/each}
+		<option value={$options.docSize}>Free</option>
 	</select>
+
+	<div class="row jbetween acenter xfill">
+		<label for="width">Width (pt)</label>
+		<input class="outline xfill" type="num" steps="0.01" min="0" id="width" bind:value={$options.docSize[0]} />
+	</div>
+	
+	<div class="row jbetween acenter xfill">
+		<label for="height">Height (pt)</label>
+		<input class="outline xfill" type="num" steps="0.01" min="0" id="height" bind:value={$options.docSize[1]} />
+	</div>
 
 	<div class="row jbetween acenter xfill">
 		<label for="autorotate">Autorotate</label>

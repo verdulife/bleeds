@@ -52,6 +52,10 @@ export function mm(n) {
 	return n * 2.834645663;
 }
 
+export function toMm(n) {
+	return n / 2.834645663;
+}
+
 export function rotateArt(art) {
 	const { autoRotate } = get(options);
 	const isHorizontal = art.width > art.height;
