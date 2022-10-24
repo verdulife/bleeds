@@ -5,7 +5,20 @@
 	import { onMount } from 'svelte';
 
 	let doc, docPages, art;
+	let freeSize = false;
 	let { docSize } = $options;
+	let pageSizes = [];
+
+	for (let size in PageSizes) {
+		const width = Math.round(toMm(PageSizes[size][0]));
+		const height = Math.round(toMm(PageSizes[size][1]));
+		const newSize = {
+			label: size,
+			size: [width, height]
+		};
+
+		pageSizes = [...pageSizes, newSize];
+	}
 
 	async function newPdf() {
 		doc = await PDFDocument.create();
@@ -87,6 +100,8 @@
 	}
 
 	$: if (docPages && $options.docSize !== docSize) resizeDoc();
+	$: if (!Object.entries(PageSizes).includes($options.docSize)) freeSize = true;
+
 	onMount(newPdf);
 </script>
 
@@ -98,15 +113,31 @@
 		<option value={$options.docSize}>Free</option>
 	</select>
 
-	<div class="row jbetween acenter xfill">
-		<label for="width">Width (pt)</label>
-		<input class="outline xfill" type="num" steps="0.01" min="0" id="width" bind:value={$options.docSize[0]} />
-	</div>
-	
-	<div class="row jbetween acenter xfill">
-		<label for="height">Height (pt)</label>
-		<input class="outline xfill" type="num" steps="0.01" min="0" id="height" bind:value={$options.docSize[1]} />
-	</div>
+	{#if freeSize}
+		<div class="row jbetween acenter xfill">
+			<label for="width">Width (pt)</label>
+			<input
+				class="outline xfill"
+				type="num"
+				steps="0.01"
+				min="0"
+				id="width"
+				bind:value={$options.docSize[0]}
+			/>
+		</div>
+
+		<div class="row jbetween acenter xfill">
+			<label for="height">Height (pt)</label>
+			<input
+				class="outline xfill"
+				type="num"
+				steps="0.01"
+				min="0"
+				id="height"
+				bind:value={$options.docSize[1]}
+			/>
+		</div>
+	{/if}
 
 	<div class="row jbetween acenter xfill">
 		<label for="autorotate">Autorotate</label>
