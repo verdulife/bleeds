@@ -10,7 +10,7 @@ import {
 	popGraphicsState
 } from 'pdf-lib';
 import { get } from 'svelte/store';
-import { options, queue } from '$lib/stores';
+import { options } from '$lib/stores';
 
 export const sizes = {
 	cropMark: {
@@ -336,26 +336,6 @@ export async function processEmbedPdf(doc, art) {
 		newPage.pushOperators(popGraphicsState());
 
 		if (bleed) addCropMarks(newPage);
-		/* const printWidth = rotate ? embeded.height : embeded.width;
-		const printHeight = rotate ? embeded.width : embeded.height;
-		const imgWidthScale = docSize[0] / printWidth;
-		const imgHeightScale = docSize[1] / printHeight;
-		const imgScale = fit
-			? Math.max(imgWidthScale, imgHeightScale)
-			: Math.min(imgWidthScale, imgHeightScale);
-		const imgSize = embeded.scale(imgScale);
-
-		if (rotate) {
-			newPage.setSize(docSize[1], docSize[0]);
-			newPage.setRotation(degrees(90));
-		}
-
-		newPage.drawPage(embeded, {
-			x: newPage.getWidth() / 2 - imgSize.width / 2,
-			y: newPage.getHeight() / 2 - imgSize.height / 2,
-			width: imgSize.width,
-			height: imgSize.height
-		}); */
 	}
 }
 

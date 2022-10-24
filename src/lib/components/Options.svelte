@@ -5,16 +5,17 @@
 	import { onMount } from 'svelte';
 
 	let doc, docPages, art;
-	let freeSize = false;
 	let { docSize } = $options;
 	let pageSizes = [];
 
 	for (let size in PageSizes) {
 		const width = Math.round(toMm(PageSizes[size][0]));
 		const height = Math.round(toMm(PageSizes[size][1]));
+
 		const newSize = {
 			label: size,
-			size: [width, height]
+			mm: [width, height],
+			pt: PageSizes[size]
 		};
 
 		pageSizes = [...pageSizes, newSize];
@@ -99,43 +100,46 @@
 		};
 	}
 
+	$: console.log($options.docSize);
 	$: if (docPages && $options.docSize !== docSize) resizeDoc();
-	$: if (!Object.entries(PageSizes).includes($options.docSize)) freeSize = true;
+	/* $: freeSize = !Object.values(PageSizes).includes($options.docSize); */
 
 	onMount(newPdf);
 </script>
 
 <aside class="col yfill">
 	<select class="outline xfill" bind:value={$options.docSize}>
-		{#each Object.entries(PageSizes) as [key, value]}
-			<option {value}>{key}</option>
+		{#each pageSizes as page}
+			<option value={page.pt}>{page.label} - {page.mm[0]}x{page.mm[1]}mm</option>
 		{/each}
-		<option value={$options.docSize}>Free</option>
+		<option value={[0, 0]}>Free</option>
 	</select>
 
-	{#if freeSize}
-		<div class="row jbetween acenter xfill">
-			<label for="width">Width (pt)</label>
-			<input
-				class="outline xfill"
-				type="num"
-				steps="0.01"
-				min="0"
-				id="width"
-				bind:value={$options.docSize[0]}
-			/>
-		</div>
+	{#if true}
+		<div class="dbl-input row acenter nowrap xfill">
+			<div class="input-wrapper row acenter nowrap">
+				<input
+					class="size-input outline"
+					type="number"
+					steps="0.01"
+					min="0"
+					id="width"
+					bind:value={$options.docSize[0]}
+				/>
+				<label for="width">x</label>
+			</div>
 
-		<div class="row jbetween acenter xfill">
-			<label for="height">Height (pt)</label>
-			<input
-				class="outline xfill"
-				type="num"
-				steps="0.01"
-				min="0"
-				id="height"
-				bind:value={$options.docSize[1]}
-			/>
+			<div class="input-wrapper row acenter nowrap">
+				<input
+					class="size-input outline"
+					type="number"
+					steps="0.01"
+					min="0"
+					id="height"
+					bind:value={$options.docSize[1]}
+				/>
+				<label for="height">pt</label>
+			</div>
 		</div>
 	{/if}
 
@@ -171,5 +175,15 @@
 		gap: 20px;
 		accent-color: var(--color-sec);
 		padding: 20px;
+	}
+
+	.dbl-input {
+		gap: 10px;
+		margin-top: -10px;
+
+		input {
+			width: 100%;
+			margin-right: 10px;
+		}
 	}
 </style>
