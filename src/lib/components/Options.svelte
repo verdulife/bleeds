@@ -117,70 +117,112 @@
 	onMount(newPdf);
 </script>
 
-<aside class="col yfill">
-	<select class="outline xfill" bind:value={$options.docSize} on:change={updateFreeSize}>
-		{#each pageSizes as page}
-			<option value={page.pt}>{page.label} - {page.mm[0]}x{page.mm[1]}mm</option>
-		{/each}
-	</select>
+<div class="scroll">
+	<aside class="col xfill">
+		<select class="outline xfill" bind:value={$options.docSize} on:change={updateFreeSize}>
+			{#each pageSizes as page}
+				<option value={page.pt}>{page.label} - {page.mm[0]}x{page.mm[1]}mm</option>
+			{/each}
+		</select>
 
-	<div class="dbl-input row acenter nowrap xfill">
-		<div class="input-wrapper row acenter nowrap">
-			<input
-				class="size-input outline"
-				type="number"
-				steps="0.01"
-				min="0"
-				id="width"
-				bind:value={freeWidth}
-				on:change={sizeToPt}
-			/>
-			<label for="width">x</label>
+		<div class="dbl-input row acenter nowrap xfill">
+			<div class="input-wrapper row acenter nowrap">
+				<input
+					class="size-input outline"
+					type="number"
+					steps="0.01"
+					min="0"
+					id="width"
+					bind:value={freeWidth}
+					on:change={sizeToPt}
+				/>
+				<label for="width">x</label>
+			</div>
+
+			<div class="input-wrapper row acenter nowrap">
+				<input
+					class="size-input outline"
+					type="number"
+					steps="0.01"
+					min="0"
+					id="height"
+					bind:value={freeHeight}
+					on:change={sizeToPt}
+				/>
+				<label for="height">mm</label>
+			</div>
 		</div>
 
-		<div class="input-wrapper row acenter nowrap">
-			<input
-				class="size-input outline"
-				type="number"
-				steps="0.01"
-				min="0"
-				id="height"
-				bind:value={freeHeight}
-				on:change={sizeToPt}
-			/>
-			<label for="height">mm</label>
-		</div>
-	</div>
-
-	<div class="row jbetween acenter xfill">
-		<label for="autorotate">Autorotate</label>
-		<input type="checkbox" id="autorotate" bind:checked={$options.autoRotate} />
-	</div>
-
-	<div class="row jbetween acenter xfill">
-		<label for="fit">Fit</label>
-		<input type="checkbox" id="fit" bind:checked={$options.fit} />
-	</div>
-
-	<div class="row jbetween acenter xfill">
-		<label for="bleed">Bleed</label>
-		<input type="checkbox" id="bleed" bind:checked={$options.bleed} />
-	</div>
-
-	{#if $options.bleed}
 		<div class="row jbetween acenter xfill">
-			<label for="mirror">Mirror Bleed</label>
-			<input type="checkbox" id="mirror" bind:checked={$options.mirrorBleed} />
+			<label for="autorotate">Autorotate</label>
+			<input type="checkbox" id="autorotate" bind:checked={$options.autoRotate} />
 		</div>
-	{/if}
 
-	<button class="sec xfill" on:click={loadFile}>ADD</button>
-	<button class="sec-outline xfill" on:click={newPdf}>RESET</button>
-</aside>
+		<div class="row jbetween acenter xfill">
+			<label for="fit">Fit</label>
+			<input type="checkbox" id="fit" bind:checked={$options.fit} />
+		</div>
+
+		<div class="row jbetween acenter xfill">
+			<label for="bleed">Bleed</label>
+			<input type="checkbox" id="bleed" bind:checked={$options.bleed} />
+		</div>
+
+		{#if $options.bleed}
+			<div class="row jbetween acenter xfill">
+				<label for="mirror">Mirror Bleed</label>
+				<input type="checkbox" id="mirror" bind:checked={$options.mirrorBleed} />
+			</div>
+		{/if}
+
+		<button class="sec xfill" on:click={loadFile}>ADD</button>
+
+		<div class="row jbetween acenter xfill">
+			<label for="tablePrint">Table Print</label>
+			<input type="checkbox" id="tablePrint" bind:checked={$options.tablePrint} />
+		</div>
+
+		{#if $options.tablePrint}
+			<select class="outline xfill" bind:value={$options.tableSize}>
+				{#each pageSizes as page}
+					<option value={page.pt}>{page.label} - {page.mm[0]}x{page.mm[1]}mm</option>
+				{/each}
+			</select>
+
+			<div class="col xfill">
+				<label for="columns">Columns</label>
+				<input
+					class="outline xfill"
+					type="number"
+					min="1"
+					id="columns"
+					bind:value={$options.columns}
+				/>
+			</div>
+
+			<div class="col xfill">
+				<label for="rows">Rows</label>
+				<input class="outline xfill" type="number" min="1" id="rows" bind:value={$options.rows} />
+			</div>
+
+			<div class="col xfill">
+				<label for="gap">Gap (mm)</label>
+				<input class="outline xfill" type="number" min="1" id="gap" bind:value={$options.gap} />
+			</div>
+
+			<button class="sec xfill" on:click={newPdf}>PREPARE TABLE</button>
+		{/if}
+
+		<button class="sec-outline xfill" on:click={newPdf}>RESET</button>
+	</aside>
+</div>
 
 <style lang="scss">
-	aside {
+	.scroll {
 		width: 300px;
+	}
+
+	aside {
 		gap: 20px;
 		accent-color: var(--color-sec);
 		padding: 20px;

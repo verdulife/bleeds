@@ -6,7 +6,12 @@ export const options = writable({
 	autoRotate: true,
 	fit: true,
 	bleed: false,
-	mirrorBleed: false
+	mirrorBleed: false,
+	tablePrint: false,
+	tableSize: PageSizes.SRA3,
+	columns: 1,
+	rows: 1,
+	gap: 0
 });
 
 export const queue = writable({
