@@ -1,12 +1,14 @@
 <script>
 	import { options, queue } from '$lib/stores';
 	import { PDFDocument, PageSizes } from 'pdf-lib';
-	import { readFile, processEmbedPdf, processEmbedImage, toMm } from '$lib/utils';
+	import { readFile, processEmbedPdf, processEmbedImage, toMm, mm } from '$lib/utils';
 	import { onMount } from 'svelte';
 
 	let doc, docPages, art;
 	let { docSize } = $options;
 	let pageSizes = [];
+	let freeWidth = Math.round(toMm($options.docSize[0]));
+	let freeHeight = Math.round(toMm($options.docSize[1]));
 
 	for (let size in PageSizes) {
 		const width = Math.round(toMm(PageSizes[size][0]));
@@ -100,48 +102,55 @@
 		};
 	}
 
-	$: console.log($options.docSize);
+	function updateFreeSize() {
+		freeWidth = Math.round(toMm($options.docSize[0]));
+		freeHeight = Math.round(toMm($options.docSize[1]));
+	}
+
+	function sizeToPt() {
+		$options.docSize = [mm(freeWidth), mm(freeHeight)];
+	}
+
 	$: if (docPages && $options.docSize !== docSize) resizeDoc();
-	/* $: freeSize = !Object.values(PageSizes).includes($options.docSize); */
+	$: console.log($options.docSize);
 
 	onMount(newPdf);
 </script>
 
 <aside class="col yfill">
-	<select class="outline xfill" bind:value={$options.docSize}>
+	<select class="outline xfill" bind:value={$options.docSize} on:change={updateFreeSize}>
 		{#each pageSizes as page}
 			<option value={page.pt}>{page.label} - {page.mm[0]}x{page.mm[1]}mm</option>
 		{/each}
-		<option value={[0, 0]}>Free</option>
 	</select>
 
-	{#if true}
-		<div class="dbl-input row acenter nowrap xfill">
-			<div class="input-wrapper row acenter nowrap">
-				<input
-					class="size-input outline"
-					type="number"
-					steps="0.01"
-					min="0"
-					id="width"
-					bind:value={$options.docSize[0]}
-				/>
-				<label for="width">x</label>
-			</div>
-
-			<div class="input-wrapper row acenter nowrap">
-				<input
-					class="size-input outline"
-					type="number"
-					steps="0.01"
-					min="0"
-					id="height"
-					bind:value={$options.docSize[1]}
-				/>
-				<label for="height">pt</label>
-			</div>
+	<div class="dbl-input row acenter nowrap xfill">
+		<div class="input-wrapper row acenter nowrap">
+			<input
+				class="size-input outline"
+				type="number"
+				steps="0.01"
+				min="0"
+				id="width"
+				bind:value={freeWidth}
+				on:change={sizeToPt}
+			/>
+			<label for="width">x</label>
 		</div>
-	{/if}
+
+		<div class="input-wrapper row acenter nowrap">
+			<input
+				class="size-input outline"
+				type="number"
+				steps="0.01"
+				min="0"
+				id="height"
+				bind:value={freeHeight}
+				on:change={sizeToPt}
+			/>
+			<label for="height">mm</label>
+		</div>
+	</div>
 
 	<div class="row jbetween acenter xfill">
 		<label for="autorotate">Autorotate</label>
@@ -184,6 +193,8 @@
 		input {
 			width: 100%;
 			margin-right: 10px;
+			padding-left: 10px;
+			padding-right: 10px;
 		}
 	}
 </style>
