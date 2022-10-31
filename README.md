@@ -1,8 +1,5 @@
 ![logo](static/logo-192.png)
 
-<br>
-<br>
-
 # Preprinting utility app
 
 ## TODOS
