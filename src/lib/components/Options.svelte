@@ -1,12 +1,13 @@
 <script>
 	import { options, queue } from '$lib/stores';
-	import { PDFDocument, PageSizes } from 'pdf-lib';
-	import { readFile, processEmbedPdf, processEmbedImage, toMm, mm } from '$lib/utils';
+	import { PDFDocument } from 'pdf-lib';
+	import { readFile, processEmbedPdf, processEmbedImage, mm2pt } from '$lib/utils';
+	import { pageSizes } from '$lib/data';
 	import { onMount } from 'svelte';
 
 	let doc, docPages, art;
-	let { docSize } = $options;
-	let pageSizes = [];
+	/* let { docSize } = $options; */
+	/* let pageSizes = [];
 	let freeWidth = Math.round(toMm($options.docSize[0]));
 	let freeHeight = Math.round(toMm($options.docSize[1]));
 
@@ -21,7 +22,7 @@
 		};
 
 		pageSizes = [...pageSizes, newSize];
-	}
+	} */
 
 	async function newPdf() {
 		doc = await PDFDocument.create();
@@ -46,14 +47,14 @@
 		doc.pageMap.forEach((page) => {
 			const { angle } = page.getRotation();
 			const rotate = angle !== 0;
+			const width_pt = mm2pt($options.docSize[rotate ? 1 : 0]);
+			const height_pt = mm2pt($options.docSize[rotate ? 0 : 1]);
 
-			const width = $options.docSize[rotate ? 1 : 0] / page.getTrimBox().width;
-			const height = $options.docSize[rotate ? 0 : 1] / page.getTrimBox().height;
+			const width = width_pt / page.getTrimBox().width;
+			const height = height_pt / page.getTrimBox().height;
 
 			page.scale(width, height);
 		});
-
-		docSize = $options.docSize;
 
 		if (doc.pageCount > 0) {
 			processPdf();
@@ -102,26 +103,20 @@
 		};
 	}
 
-	function updateFreeSize() {
+	/* function updateFreeSize() {
 		freeWidth = Math.round(toMm($options.docSize[0]));
 		freeHeight = Math.round(toMm($options.docSize[1]));
-	}
+	} */
 
-	function sizeToPt() {
-		$options.docSize = [mm(freeWidth), mm(freeHeight)];
-	}
-
-	$: if (docPages && $options.docSize !== docSize) resizeDoc();
-	$: console.log($options.docSize);
-
+	$: if (docPages && $options.docSize) resizeDoc();
 	onMount(newPdf);
 </script>
 
 <div class="scroll">
 	<aside class="col xfill">
-		<select class="outline xfill" bind:value={$options.docSize} on:change={updateFreeSize}>
-			{#each pageSizes as page}
-				<option value={page.pt}>{page.label} - {page.mm[0]}x{page.mm[1]}mm</option>
+		<select class="outline xfill" bind:value={$options.docSize}>
+			{#each pageSizes as { label, size }}
+				<option value={size}>{label} - {size[0]}x{size[1]}mm</option>
 			{/each}
 		</select>
 
@@ -133,8 +128,7 @@
 					steps="0.01"
 					min="0"
 					id="width"
-					bind:value={freeWidth}
-					on:change={sizeToPt}
+					bind:value={$options.docSize[0]}
 				/>
 				<label for="width">x</label>
 			</div>
@@ -146,8 +140,7 @@
 					steps="0.01"
 					min="0"
 					id="height"
-					bind:value={freeHeight}
-					on:change={sizeToPt}
+					bind:value={$options.docSize[1]}
 				/>
 				<label for="height">mm</label>
 			</div>
@@ -177,7 +170,7 @@
 
 		<button class="sec xfill" on:click={loadFile}>ADD</button>
 
-		<div class="row jbetween acenter xfill">
+		<!-- <div class="row jbetween acenter xfill">
 			<label for="tablePrint">Table Print</label>
 			<input type="checkbox" id="tablePrint" bind:checked={$options.tablePrint} />
 		</div>
@@ -211,7 +204,7 @@
 			</div>
 
 			<button class="sec xfill" on:click={newPdf}>PREPARE TABLE</button>
-		{/if}
+		{/if} -->
 
 		<button class="sec-outline xfill" on:click={newPdf}>RESET</button>
 	</aside>

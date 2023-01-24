@@ -12,6 +12,14 @@ import {
 import { get } from 'svelte/store';
 import { options } from '$lib/stores';
 
+export function pt2mm(n) {
+	return n * 2.834645663;
+}
+
+export function mm2pt(n) {
+	return n / 2.834645663;
+}
+
 export const sizes = {
 	cropMark: {
 		size: 0,
@@ -19,18 +27,18 @@ export const sizes = {
 	},
 	mediaBox: {
 		distance: 0,
-		width: get(options).docSize[0] + mm(12),
-		height: get(options).docSize[1] + mm(12)
+		width: mm2pt(get(options).docSize[0]) + pt2mm(12),
+		height: mm2pt(get(options).docSize[1]) + pt2mm(12)
 	},
 	bleedBox: {
-		distance: mm(3),
-		width: get(options).docSize[0] + mm(6),
-		height: get(options).docSize[1] + mm(6)
+		distance: pt2mm(3),
+		width: mm2pt(get(options).docSize[0]) + pt2mm(6),
+		height: mm2pt(get(options).docSize[1]) + pt2mm(6)
 	},
 	trimBox: {
-		distance: mm(6),
-		width: get(options).docSize[0],
-		height: get(options).docSize[1]
+		distance: pt2mm(6),
+		width: mm2pt(get(options).docSize[0]),
+		height: mm2pt(get(options).docSize[1])
 	}
 };
 
@@ -48,14 +56,6 @@ export function readFile(file) {
 	});
 }
 
-export function mm(n) {
-	return n * 2.834645663;
-}
-
-export function toMm(n) {
-	return n / 2.834645663;
-}
-
 export function rotateArt(art) {
 	const { autoRotate } = get(options);
 	const isHorizontal = art.width > art.height;
@@ -64,9 +64,11 @@ export function rotateArt(art) {
 
 export function rotatePage(page, art) {
 	const { docSize, bleed } = get(options);
+	const width_pt = mm2pt(docSize[0]);
+	const height_pt = mm2pt(docSize[1]);
 
 	if (bleed) setBoxSize(page, art);
-	else page.setSize(docSize[1], docSize[0]);
+	else page.setSize(height_pt, width_pt);
 
 	page.setRotation(degrees(90));
 }
@@ -110,8 +112,8 @@ export function getArtSize(page, art) {
 export function addCropMarks(page) {
 	const width = page.getWidth();
 	const height = page.getHeight();
-	const lineSize = mm(4);
-	const lineDistance = mm(6);
+	const lineSize = pt2mm(4);
+	const lineDistance = pt2mm(6);
 
 	//bottom left
 	page.drawLine({
@@ -300,7 +302,7 @@ export function addBleed(page, art, artSize) {
 
 export function drawPdf(page, art, artSize) {
 	const { bleed } = get(options);
-	const cropDistance = bleed ? mm(3) : 0;
+	const cropDistance = bleed ? pt2mm(3) : 0;
 
 	page.pushOperators(
 		pushGraphicsState(),
@@ -318,13 +320,15 @@ export function drawPdf(page, art, artSize) {
 
 export async function processEmbedPdf(doc, art) {
 	const { docSize, bleed } = get(options);
+	const width_pt = mm2pt(docSize[0]);
+	const height_pt = mm2pt(docSize[1]);
 
 	for (let p = 0; p < art.length; p++) {
 		/* queue.update((val) => (val.message = `Processing page ${p} of ${art.length} from pdf`)); */
 
 		const embeded = await doc.embedPage(art[p]);
 
-		const newPage = doc.addPage(docSize);
+		const newPage = doc.addPage([width_pt, height_pt]);
 
 		const rotate = rotateArt(embeded);
 		const artSize = getArtSize(newPage, embeded);
@@ -341,7 +345,9 @@ export async function processEmbedPdf(doc, art) {
 
 export function processEmbedImage(doc, art) {
 	const { docSize, bleed } = get(options);
-	const newPage = doc.addPage(docSize);
+	const width_pt = mm2pt(docSize[0]);
+	const height_pt = mm2pt(docSize[1]);
+	const newPage = doc.addPage([width_pt, height_pt]);
 	const rotate = rotateArt(art);
 	const artSize = getArtSize(newPage, art);
 

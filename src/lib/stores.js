@@ -1,14 +1,14 @@
 import { writable } from 'svelte/store';
-import { PageSizes } from 'pdf-lib';
+import { pageSizes } from '$lib/data';
 
 export const options = writable({
-	docSize: PageSizes.A6,
+	docSize: pageSizes[0].size,
 	autoRotate: true,
 	fit: true,
 	bleed: false,
 	mirrorBleed: false,
 	tablePrint: false,
-	tableSize: PageSizes.SRA3,
+	tableSize: pageSizes[0].size,
 	columns: 1,
 	rows: 1,
 	gap: 0
