@@ -20,26 +20,29 @@ export function mm2pt(n) {
 	return n * 2.834645663;
 }
 
-export const sizes = {
-	cropMark: {
-		size: 0,
-		distance: 0
-	},
-	mediaBox: {
-		distance: 0,
-		width: get(options).docSize[0] + pt2mm(12),
-		height: get(options).docSize[1] + pt2mm(12)
-	},
-	bleedBox: {
-		distance: pt2mm(3),
-		width: get(options).docSize[0] + pt2mm(6),
-		height: get(options).docSize[1] + pt2mm(6)
-	},
-	trimBox: {
-		distance: pt2mm(6),
-		width: get(options).docSize[0],
-		height: mm2pt(get(options).docSize[1])
+function getSize(size) {
+	const sizes = {
+		cropMark: {
+			size: 0,
+			distance: 0
+		},
+		mediaBox: {
+			distance: 0,
+			width: mm2pt(get(options).docSize[0]) + mm2pt(12),
+			height: mm2pt(get(options).docSize[1]) + mm2pt(12)
+		},
+		bleedBox: {
+			distance: mm2pt(3),
+			width: mm2pt(get(options).docSize[0]) + mm2pt(6),
+			height: mm2pt(get(options).docSize[1]) + mm2pt(6)
+		},
+		trimBox: {
+			distance: mm2pt(6),
+			width: mm2pt(get(options).docSize[0]),
+			height: mm2pt(get(options).docSize[1])
+		}
 	}
+	return sizes[size];
 };
 
 export function readFile(file) {
@@ -74,7 +77,9 @@ export function rotatePage(page, art) {
 }
 
 export function setBoxSize(page, art) {
-	const { mediaBox, bleedBox, trimBox } = sizes;
+	const mediaBox = getSize("mediaBox");
+	const bleedBox = getSize("bleedBox");
+	const trimBox = getSize("trimBox");
 	const rotate = rotateArt(art);
 	const mediaBoxWidth = rotate ? mediaBox.height : mediaBox.width;
 	const mediaBoxHeight = rotate ? mediaBox.width : mediaBox.height;
@@ -112,8 +117,8 @@ export function getArtSize(page, art) {
 export function addCropMarks(page) {
 	const width = page.getWidth();
 	const height = page.getHeight();
-	const lineSize = pt2mm(4);
-	const lineDistance = pt2mm(6);
+	const lineSize = mm2pt(4);
+	const lineDistance = mm2pt(6);
 
 	//bottom left
 	page.drawLine({
@@ -302,7 +307,7 @@ export function addBleed(page, art, artSize) {
 
 export function drawPdf(page, art, artSize) {
 	const { bleed } = get(options);
-	const cropDistance = bleed ? pt2mm(3) : 0;
+	const cropDistance = bleed ? mm2pt(3) : 0;
 
 	page.pushOperators(
 		pushGraphicsState(),
@@ -346,8 +351,6 @@ export function processEmbedImage(doc, art) {
 	const newPage = doc.addPage([width_pt, height_pt]);
 	const rotate = rotateArt(art);
 	const artSize = getArtSize(newPage, art);
-
-	console.log(docSize[0], width_pt);
 
 	if (bleed) setBoxSize(newPage, art);
 	if (rotate) rotatePage(newPage, art);

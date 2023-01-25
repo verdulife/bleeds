@@ -32,16 +32,13 @@
 			const rotate = angle !== 0;
 			const width_pt = mm2pt($options.docSize[rotate ? 1 : 0]);
 			const height_pt = mm2pt($options.docSize[rotate ? 0 : 1]);
-
 			const width = width_pt / page.getTrimBox().width;
 			const height = height_pt / page.getTrimBox().height;
 
 			page.scale(width, height);
 		});
 
-		if (doc.pageCount > 0) {
-			processPdf();
-		}
+		if (doc.pageCount > 0) processPdf();
 	}
 
 	async function processFiles(rawFiles) {
@@ -86,7 +83,7 @@
 		};
 	}
 
-	$: if (docPages && $options.docSize) resizeDoc();
+	$: if (docPages && $options) resizeDoc();
 	onMount(newPdf);
 </script>
 
