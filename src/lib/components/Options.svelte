@@ -6,23 +6,6 @@
 	import { onMount } from 'svelte';
 
 	let doc, docPages, art;
-	/* let { docSize } = $options; */
-	/* let pageSizes = [];
-	let freeWidth = Math.round(toMm($options.docSize[0]));
-	let freeHeight = Math.round(toMm($options.docSize[1]));
-
-	for (let size in PageSizes) {
-		const width = Math.round(toMm(PageSizes[size][0]));
-		const height = Math.round(toMm(PageSizes[size][1]));
-
-		const newSize = {
-			label: size,
-			mm: [width, height],
-			pt: PageSizes[size]
-		};
-
-		pageSizes = [...pageSizes, newSize];
-	} */
 
 	async function newPdf() {
 		doc = await PDFDocument.create();
@@ -102,11 +85,6 @@
 			await processFiles(rawFiles);
 		};
 	}
-
-	/* function updateFreeSize() {
-		freeWidth = Math.round(toMm($options.docSize[0]));
-		freeHeight = Math.round(toMm($options.docSize[1]));
-	} */
 
 	$: if (docPages && $options.docSize) resizeDoc();
 	onMount(newPdf);

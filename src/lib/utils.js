@@ -13,11 +13,11 @@ import { get } from 'svelte/store';
 import { options } from '$lib/stores';
 
 export function pt2mm(n) {
-	return n * 2.834645663;
+	return n / 2.834645663;
 }
 
 export function mm2pt(n) {
-	return n / 2.834645663;
+	return n * 2.834645663;
 }
 
 export const sizes = {
@@ -27,17 +27,17 @@ export const sizes = {
 	},
 	mediaBox: {
 		distance: 0,
-		width: mm2pt(get(options).docSize[0]) + pt2mm(12),
-		height: mm2pt(get(options).docSize[1]) + pt2mm(12)
+		width: get(options).docSize[0] + pt2mm(12),
+		height: get(options).docSize[1] + pt2mm(12)
 	},
 	bleedBox: {
 		distance: pt2mm(3),
-		width: mm2pt(get(options).docSize[0]) + pt2mm(6),
-		height: mm2pt(get(options).docSize[1]) + pt2mm(6)
+		width: get(options).docSize[0] + pt2mm(6),
+		height: get(options).docSize[1] + pt2mm(6)
 	},
 	trimBox: {
 		distance: pt2mm(6),
-		width: mm2pt(get(options).docSize[0]),
+		width: get(options).docSize[0],
 		height: mm2pt(get(options).docSize[1])
 	}
 };
@@ -324,12 +324,8 @@ export async function processEmbedPdf(doc, art) {
 	const height_pt = mm2pt(docSize[1]);
 
 	for (let p = 0; p < art.length; p++) {
-		/* queue.update((val) => (val.message = `Processing page ${p} of ${art.length} from pdf`)); */
-
 		const embeded = await doc.embedPage(art[p]);
-
 		const newPage = doc.addPage([width_pt, height_pt]);
-
 		const rotate = rotateArt(embeded);
 		const artSize = getArtSize(newPage, embeded);
 
@@ -350,6 +346,8 @@ export function processEmbedImage(doc, art) {
 	const newPage = doc.addPage([width_pt, height_pt]);
 	const rotate = rotateArt(art);
 	const artSize = getArtSize(newPage, art);
+
+	console.log(docSize[0], width_pt);
 
 	if (bleed) setBoxSize(newPage, art);
 	if (rotate) rotatePage(newPage, art);
