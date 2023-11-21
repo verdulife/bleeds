@@ -89,11 +89,11 @@
 
 <div class="scroll">
 	<aside class="col xfill">
-		<select class="outline xfill" bind:value={$options.docSize}>
+		<!-- <select class="outline xfill" bind:value={$options.docSize}>
 			{#each pageSizes as { label, size }}
 				<option value={size}>{label} - {size[0]}x{size[1]}mm</option>
 			{/each}
-		</select>
+		</select> -->
 
 		<div class="dbl-input row acenter nowrap xfill">
 			<div class="input-wrapper row acenter nowrap">
@@ -194,6 +194,7 @@
 		gap: 20px;
 		accent-color: var(--color-sec);
 		padding: 20px;
+		padding-top: 50px;
 	}
 
 	.dbl-input {
